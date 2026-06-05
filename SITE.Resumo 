@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eye Tracking · Neurociências Cognitivas</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f7f5f2; --surface:#ffffff; --border:#e4e0db;
+  --border-strong:#c8c2bb; --ink:#1a1714; --ink-mid:#4a453f;
+  --ink-soft:#8c857d; --accent:#8b5a2b; --accent-bg:#f5ede3;
+  --accent2:#2b4a5a; --accent2-bg:#e3ecf0;
+  --ff-serif:'Cormorant Garamond',Georgia,serif;
+  --ff-sans:'Outfit',system-ui,sans-serif;
+  --max:860px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--ff-sans);background:var(--bg);color:var(--ink);font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased;cursor:none;}
+
+/* cursor olho */
+#eye-cursor{position:fixed;pointer-events:none;z-index:9999;width:28px;height:18px;border:1.5px solid var(--accent);border-radius:50%;transform:translate(-50%,-50%);mix-blend-mode:multiply;display:flex;align-items:center;justify-content:center;}
+#eye-cursor::after{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent);}
+
+/* layout */
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px;}
+
+/* header */
+.site-header{background:var(--surface);border-bottom:1px solid var(--border);padding:56px 0 48px;}
+.evento-tag{display:inline-flex;align-items:center;gap:8px;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:24px;}
+.evento-tag::before{content:'';display:inline-block;width:20px;height:1px;background:var(--accent);}
+.site-header h1{font-family:var(--ff-serif);font-size:clamp(2rem,5vw,3.1rem);font-weight:700;line-height:1.12;letter-spacing:-.01em;color:var(--ink);max-width:620px;margin-bottom:14px;}
+.site-header h1 em{font-style:italic;color:var(--accent);}
+.subtitulo{font-size:1rem;font-weight:500;color:var(--ink-mid);max-width:480px;line-height:1.6;margin-bottom:32px;}
+.autoras-row{display:flex;flex-wrap:wrap;gap:20px;padding-top:24px;border-top:1px solid var(--border);}
+.autora{display:flex;align-items:center;gap:12px;}
+.autora-ini{width:38px;height:38px;border:1.5px solid var(--border-strong);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--ff-serif);font-size:.95rem;font-weight:700;color:var(--accent);flex-shrink:0;}
+.autora-nome{font-size:.88rem;font-weight:600;color:var(--ink);}
+.autora-inst{font-size:.73rem;font-weight:400;color:var(--ink-soft);margin-top:1px;}
+.kw-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:20px;}
+.kw{font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);border:1px solid var(--border);border-radius:3px;padding:3px 9px;background:var(--bg);}
+.gaze-trail{display:block;width:100%;height:2px;background:linear-gradient(to right,transparent 0%,var(--accent) 30%,var(--accent2) 70%,transparent 100%);opacity:.18;margin-top:20px;}
+
+/* nav */
+.site-nav{position:sticky;top:0;z-index:100;background:rgba(247,245,242,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+.site-nav ul{list-style:none;display:flex;overflow-x:auto;scrollbar-width:none;max-width:var(--max);margin:0 auto;padding:0 28px;}
+.site-nav ul::-webkit-scrollbar{display:none;}
+.site-nav a{display:block;padding:12px 14px;font-size:.72rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap;transition:color .18s,border-color .18s;}
+.site-nav a:hover,.site-nav a.ativo{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* seções */
+.secao{padding:60px 0;border-bottom:1px solid var(--border);opacity:0;transform:translateY(20px);transition:opacity .55s ease,transform .55s ease;}
+.secao.vis{opacity:1;transform:translateY(0);}
+.secao:last-of-type{border-bottom:none;}
+
+/* cabeçalho de seção */
+.sec-head{display:grid;grid-template-columns:52px 1fr;gap:0 16px;margin-bottom:32px;align-items:start;}
+.sec-num{font-family:var(--ff-serif);font-size:1rem;font-weight:400;color:var(--ink-soft);padding-top:6px;}
+.sec-sub{display:block;font-family:var(--ff-sans);font-size:.68rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;}
+.sec-titulo{font-family:var(--ff-serif);font-size:clamp(1.6rem,3vw,2.1rem);font-weight:700;line-height:1.15;color:var(--ink);}
+
+/* prosa */
+.prosa{color:var(--ink-mid);font-size:1rem;font-weight:400;line-height:1.82;max-width:680px;margin:0;}
+.prosa+.prosa{margin-top:14px;}
+.prosa strong{color:var(--ink);font-weight:700;}
+.prosa em{font-style:italic;color:var(--accent);}
+
+/* pullquote */
+.pullquote{margin:28px 0;padding:22px 26px;border-left:3px solid var(--accent);background:var(--accent-bg);border-radius:0 6px 6px 0;}
+.pullquote p{font-family:var(--ff-serif);font-size:1.15rem;font-weight:400;font-style:italic;line-height:1.65;color:var(--ink);margin:0;}
+.pullquote strong{font-weight:700;font-style:normal;}
+
+/* stats */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:24px;}
+.stat{background:var(--surface);padding:22px 16px;text-align:center;transition:background .2s;}
+.stat:hover{background:var(--accent-bg);}
+.stat-n{font-family:var(--ff-serif);font-size:2.5rem;font-weight:700;color:var(--accent);line-height:1;}
+.stat-l{font-size:.75rem;font-weight:500;color:var(--ink-soft);margin-top:6px;line-height:1.35;}
+
+/* grid 2 col */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+@media(max-width:580px){.g2{grid-template-columns:1fr;}}
+.g2-cell{background:var(--surface);padding:22px 20px;}
+.g2-cell h4{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+
+/* linha item */
+.linha-item{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+.linha-item:first-of-type{padding-top:0;}
+.linha-item:last-of-type{border-bottom:none;padding-bottom:0;}
+.li-barra{width:2px;min-height:40px;background:var(--border-strong);flex-shrink:0;margin-top:3px;border-radius:2px;}
+.linha-item.destaque .li-barra{background:var(--accent);}
+.linha-item.azul .li-barra{background:var(--accent2);}
+.li-badge{display:inline-block;font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);border-radius:3px;padding:2px 7px;margin-bottom:4px;}
+.li-badge.azul{color:var(--accent2);background:var(--accent2-bg);}
+.li-nome{font-size:.95rem;font-weight:700;color:var(--ink);line-height:1.3;}
+.li-sub{font-size:.84rem;font-weight:400;color:var(--ink-soft);margin-top:3px;line-height:1.5;}
+
+/* tendências */
+.tend-list{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.tend-card{background:var(--surface);padding:22px 24px;display:grid;grid-template-columns:44px 1fr;gap:14px;transition:background .2s;}
+.tend-card:hover{background:var(--accent-bg);}
+.tend-n{font-family:var(--ff-serif);font-size:2rem;font-weight:700;color:var(--border-strong);line-height:1;padding-top:4px;transition:color .2s;}
+.tend-card:hover .tend-n{color:var(--accent);}
+.tend-titulo{font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.tend-corpo{font-size:.86rem;font-weight:400;color:var(--ink-mid);line-height:1.72;}
+
+/* referências */
+.ref-grid{columns:2;column-gap:28px;}
+@media(max-width:620px){.ref-grid{columns:1;}}
+.ref{break-inside:avoid;margin-bottom:12px;font-size:.8rem;font-weight:400;color:var(--ink-soft);line-height:1.55;padding-left:10px;border-left:2px solid var(--border);}
+.ref strong{color:var(--ink-mid);font-weight:600;}
+.ref em{font-style:italic;}
+
+/* footer */
+footer{background:var(--ink);color:rgba(255,255,255,.5);text-align:center;padding:36px 28px;font-size:.78rem;font-weight:400;line-height:1.8;}
+footer strong{color:rgba(255,255,255,.8);font-weight:600;}
+</style>
+</head>
+<body>
+
+<div id="eye-cursor"></div>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="wrap">
+    <div class="evento-tag">III Simpósio de Integração, Inovação e Tecnologia · IFB · 2025</div>
+    <h1>Revisão Sistemática de <em>Eye Tracking</em> em Neurociências Cognitivas</h1>
+    <p class="subtitulo">Aplicações metodológicas, rigor experimental e tendências nas ciências cognitivas e comportamentais</p>
+    <div class="autoras-row">
+      <div class="autora">
+        <div class="autora-ini">VC</div>
+        <div>
+          <div class="autora-nome">Vanessa Cristina da Silva</div>
+          <div class="autora-inst">IFB · LabConsumer/ENEDES · vanessa.silva@ifb.edu.br</div>
+        </div>
+      </div>
+      <div class="autora">
+        <div class="autora-ini">LB</div>
+        <div>
+          <div class="autora-nome">Letícia Bianca Barros de Moraes Lima</div>
+          <div class="autora-inst">IFB · LabConsumer/ENEDES · leticia.lima@ifb.edu.br</div>
+        </div>
+      </div>
+    </div>
+    <div class="kw-row">
+      <span class="kw">eye tracking</span>
+      <span class="kw">ciências cognitivas</span>
+      <span class="kw">comportamento oculomotor</span>
+      <span class="kw">integração multimodal</span>
+      <span class="kw">rigor metodológico</span>
+    </div>
+    <span class="gaze-trail"></span>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="site-nav">
+  <ul>
+    <li><a href="#resumo">Resumo</a></li>
+    <li><a href="#introducao">Introdução</a></li>
+    <li><a href="#metodologia">Metodologia</a></li>
+    <li><a href="#resultados">Resultados</a></li>
+    <li><a href="#equipamentos">Equipamentos</a></li>
+    <li><a href="#metricas">Métricas</a></li>
+    <li><a href="#tendencias">Tendências</a></li>
+    <li><a href="#conclusao">Conclusão</a></li>
+    <li><a href="#referencias">Referências</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- 00 RESUMO -->
+<section class="secao" id="resumo">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">00</span>
+      <h2><span class="sec-sub">Abstract</span><span class="sec-titulo">Resumo</span></h2>
+    </div>
+    <div class="pullquote"><p>O <em>eye tracking</em> evoluiu de discussões teóricas para aplicações práticas — este estudo mapeia esse percurso em 45 artigos científicos, revelando padrões, lacunas e as três grandes tendências que moldarão a área.</p></div>
+    <p class="prosa">Este resumo expandido apresenta os resultados de uma <strong>revisão sistemática de 45 artigos</strong> publicados entre 2021 e 2026, com foco na aplicação técnica, no rigor metodológico e nos equipamentos utilizados. O estudo demonstra que o rastreamento ocular (<em>eye tracking</em>) evoluiu de discussões teóricas para aplicações práticas, sendo utilizado principalmente nas áreas das <strong>ciências cognitivas e comportamentais</strong>.</p>
+    <p class="prosa">A análise revela a predominância de aplicações empíricas em seres humanos, evidenciando a transição da técnica para a investigação aplicada de processos atencionais e cognitivos. Os resultados indicam a hegemonia dos equipamentos <strong>SR Research (EyeLink)</strong> e <strong>Tobii</strong>. Constatou-se que as métricas de fixação, sacadas e pupilometria são as mais utilizadas — porém identificou-se uma deficiência no relato padronizado de parâmetros instrumentais em parte da amostra.</p>
+  </div>
+</section>
+
+<!-- 01 INTRODUÇÃO -->
+<section class="secao" id="introducao">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2><span class="sec-sub">Contextualização</span><span class="sec-titulo">Introdução</span></h2>
+    </div>
+    <p class="prosa">O rastreamento ocular (<em>eye tracking</em>) estabeleceu-se como um <strong>pilar metodológico fundamental</strong> nas áreas das ciências cognitivas e comportamentais, bem como nos estudos de interação humano-computador. A capacidade de registrar o comportamento oculomotor em tempo real proporciona uma janela objetiva e quantificável para os processos atencionais, perceptivos e de tomada de decisão.</p>
+    <p class="prosa">Conforme destacam <strong>Hessels et al. (2025)</strong>, a eficácia da técnica depende da capacidade do pesquisador de estabelecer uma articulação teórica consistente entre a questão de pesquisa e o comportamento visual observado — a ausência dessa articulação pode resultar em <em>ruído analítico</em>.</p>
+    <p class="prosa">A série <em>The Fundamentals of Eye Tracking</em>, publicada em <em>Behavior Research Methods</em>, aborda desde a formulação da pergunta de pesquisa até a seleção criteriosa de hardware e software — enfatizando estudos-piloto e o delineamento rigoroso de <strong>Áreas de Interesse (AOIs)</strong>.</p>
+  </div>
+</section>
+
+<!-- 02 METODOLOGIA -->
+<section class="secao" id="metodologia">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2><span class="sec-sub">Procedimentos</span><span class="sec-titulo">Metodologia</span></h2>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-n">365</div><div class="stat-l">artigos identificados inicialmente</div></div>
+      <div class="stat"><div class="stat-n">76</div><div class="stat-l">selecionados para triagem</div></div>
+      <div class="stat"><div class="stat-n">45</div><div class="stat-l">corpus final</div></div>
+      <div class="stat"><div class="stat-n">2021–26</div><div class="stat-l">recorte temporal</div></div>
+      <div class="stat"><div class="stat-n">10</div><div class="stat-l">critérios de elegibilidade</div></div>
+    </div>
+    <div class="g2">
+      <div class="g2-cell">
+        <h4>Bases de dados</h4>
+        <div class="linha-item destaque"><div class="li-barra"></div><div><div class="li-nome">Scopus</div><div class="li-sub">351 registros → 66 incluídos</div></div></div>
+        <div class="linha-item"><div class="li-barra"></div><div><div class="li-nome">Web of Science</div><div class="li-sub">8 estudos → 4 elegíveis</div></div></div>
+        <div class="linha-item"><div class="li-barra"></div><div><div class="li-nome">Google Acadêmico</div><div class="li-sub">6 registros → 6 incluídos</div></div></div>
+      </div>
+      <div class="g2-cell">
+        <h4>Protocolo</h4>
+        <p style="font-size:.86rem;font-weight:400;color:var(--ink-mid);line-height:1.7;">Revisão organizada com <strong style="color:var(--ink);font-weight:700;">Parsifal</strong>, garantindo rastreabilidade em todas as etapas: protocolo, triagem e extração de dados.</p>
+        <p style="font-size:.86rem;font-weight:400;color:var(--ink-mid);line-height:1.7;margin-top:10px;">Fluxograma conforme diretrizes <strong style="color:var(--ink);font-weight:700;">PRISMA 2020</strong>. Análise exclusivamente sobre textos completos acessíveis.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 RESULTADOS -->
+<section class="secao" id="resultados">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2><span class="sec-sub">Achados principais</span><span class="sec-titulo">Resultados</span></h2>
+    </div>
+    <p class="prosa">A síntese dos 45 artigos revela um <strong>cenário de uso crescente e consolidado</strong> do <em>eye tracking</em>. Dos estudos analisados, <strong>37 utilizaram a técnica como instrumento central</strong> — evidenciando que o rastreamento ocular ultrapassou o âmbito teórico.</p>
+    <div class="g2" style="margin-top:24px;">
+      <div class="g2-cell">
+        <h4>Áreas de destaque</h4>
+        <div class="linha-item destaque"><div class="li-barra"></div><div><div class="li-nome">Psicologia cognitiva</div></div></div>
+        <div class="linha-item"><div class="li-barra"></div><div><div class="li-nome">Ergonomia cognitiva</div></div></div>
+        <div class="linha-item"><div class="li-barra"></div><div><div class="li-nome">Ciências clínicas e do desenvolvimento</div></div></div>
+        <div class="linha-item"><div class="li-barra"></div><div><div class="li-nome">Neurociência cognitiva aplicada</div></div></div>
+      </div>
+      <div class="g2-cell">
+        <h4>Populações investigadas</h4>
+        <p style="font-size:.86rem;font-weight:400;color:var(--ink-mid);line-height:1.7;">De <strong style="color:var(--ink);font-weight:700;">bebês com alta probabilidade de autismo</strong> e crianças surdas até estudos com <strong style="color:var(--ink);font-weight:700;">envelhecimento cognitivo</strong> e populações psiquiátricas — esquizofrenia e epilepsia do lobo frontal.</p>
+        <p style="font-size:.86rem;font-weight:400;color:var(--ink-mid);line-height:1.7;margin-top:10px;">Essa amplitude atesta a <em style="color:var(--accent);">não-invasividade</em> e tolerabilidade da técnica em populações sensíveis.</p>
+      </div>
+    </div>
+    <div class="pullquote" style="margin-top:24px;"><p><strong>41 artigos</strong> com método completo · <strong>40</strong> com métricas descritas · mas <strong>13 falharam</strong> no relato do hardware — lacuna crítica de padronização.</p></div>
+  </div>
+</section>
+
+<!-- 04 EQUIPAMENTOS -->
+<section class="secao" id="equipamentos">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">04</span>
+      <h2><span class="sec-sub">Hardware</span><span class="sec-titulo">Equipamentos</span></h2>
+    </div>
+    <p class="prosa" style="margin-bottom:24px;">Entre os estudos que reportaram o hardware, observou-se um <strong>duopólio</strong> das fabricantes SR Research e Tobii, refletindo a preferência por sistemas de alta resolução em ciência cognitiva básica.</p>
+    <div class="linha-item destaque"><div class="li-barra"></div><div><span class="li-badge">21 artigos · dominante</span><div class="li-nome">SR Research — EyeLink</div><div class="li-sub">Alta resolução temporal. Referência em pesquisas de ciência cognitiva básica. Indicado para estudos que demandam precisão submilissegundo e controle experimental rigoroso em laboratório.</div></div></div>
+    <div class="linha-item azul"><div class="li-barra"></div><div><span class="li-badge azul">7 artigos</span><div class="li-nome">Tobii</div><div class="li-sub">Maior flexibilidade de movimento ao participante. Adoção crescente em estudos ecológicos e aplicados, favorecendo paradigmas naturalísticos e menos restritivos.</div></div></div>
+    <div class="linha-item"><div class="li-barra"></div><div><div class="li-nome">Pupil Labs</div><div class="li-sub">Dispositivos vestíveis (wearables) para estudos em ambientes naturais. Crescente adoção em paradigmas ecológicos fora do laboratório — direção promissora para a área.</div></div></div>
+  </div>
+</section>
+
+<!-- 05 MÉTRICAS -->
+<section class="secao" id="metricas">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">05</span>
+      <h2><span class="sec-sub">Indicadores oculomotores</span><span class="sec-titulo">Métricas</span></h2>
+    </div>
+    <div class="linha-item destaque"><div class="li-barra"></div><div><div class="li-nome">Fixações</div><div class="li-sub">Duração e contagem — amplamente utilizadas para inferir dificuldade de processamento e alocação de atenção sustentada. Métrica central na maior parte dos estudos revisados.</div></div></div>
+    <div class="linha-item destaque"><div class="li-barra"></div><div><div class="li-nome">Sacadas</div><div class="li-sub">Amplitude e latência da primeira sacada — empregadas para mensurar captura atencional exógena e mecanismos de controle inibitório (Stilwell & Vecera, 2022).</div></div></div>
+    <div class="linha-item destaque"><div class="li-barra"></div><div><div class="li-nome">Pupilometria</div><div class="li-sub">Índice sensível de esforço cognitivo e ativação do sistema nervoso autônomo. Avaliação de respostas emocionais e carga mental — destaque crescente na literatura recente.</div></div></div>
+    <div class="linha-item"><div class="li-barra"></div><div><div class="li-nome">AOIs & Dwell Time</div><div class="li-sub">Áreas de Interesse e tempo de permanência — fundamentais para avaliar a alocação espacial da atenção. Exige precisão na definição geométrica para evitar vieses analíticos.</div></div></div>
+    <div class="linha-item"><div class="li-barra"></div><div><div class="li-nome">Regressões</div><div class="li-sub">Movimentos oculares de retorno — indicadores de dificuldade de compreensão, especialmente em estudos de leitura e processamento linguístico.</div></div></div>
+  </div>
+</section>
+
+<!-- 06 TENDÊNCIAS -->
+<section class="secao" id="tendencias">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">06</span>
+      <h2><span class="sec-sub">Perspectivas futuras</span><span class="sec-titulo">Tendências</span></h2>
+    </div>
+    <p class="prosa" style="margin-bottom:24px;">A análise revelou três eixos principais de evolução metodológica que estão redefinindo o campo das neurociências.</p>
+    <div class="tend-list">
+      <div class="tend-card"><div class="tend-n">1</div><div><div class="tend-titulo">Integração Multimodal — coregistro com EEG & fMRI</div><div class="tend-corpo">O avanço mais significativo para a compreensão holística dos processos neurais. A combinação do <em>eye tracking</em> com neuroimagem e eletrofisiologia permite mapear indicadores neurofisiológicos de forma integrada. Estudos demonstram que a fusão de modalidades supera o poder preditivo de cada técnica isolada (Zhang et al., 2021).</div></div></div>
+      <div class="tend-card"><div class="tend-n">2</div><div><div class="tend-titulo">Machine Learning & Modelagem Preditiva</div><div class="tend-corpo">Transição da análise estatística clássica para algoritmos de aprendizado de máquina. Dados brutos de movimentos oculares treinam classificadores que detectam estados cognitivos automaticamente — abrindo precedentes para monitoramento em tempo real de fadiga e carga cognitiva (Rizzo et al., 2022).</div></div></div>
+      <div class="tend-card"><div class="tend-n">3</div><div><div class="tend-titulo">Paradigmas Ecológicos & Dispositivos Vestíveis</div><div class="tend-corpo">Migração progressiva do laboratório para ambientes naturais, impulsionada pela evolução do hardware vestível. Comportamentos oculomotores em telas não se traduzem necessariamente para interações face a face. Plataformas online via webcam viabilizam pesquisas em larga escala (Hessels et al., 2025b).</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 CONCLUSÃO -->
+<section class="secao" id="conclusao">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">07</span>
+      <h2><span class="sec-sub">Considerações finais</span><span class="sec-titulo">Conclusão</span></h2>
+    </div>
+    <div class="pullquote"><p>A revisão atesta a maturidade do <em>eye tracking</em> como instrumento metodológico. As trajetórias futuras apontam para um cenário onde o rastreamento ocular atua em <strong>sinergia</strong> com neuroimagem, algoritmos avançados e dispositivos vestíveis.</p></div>
+    <p class="prosa">O <em>eye tracking</em> consolidou-se como <strong>ferramenta de alta densidade informacional</strong> nas ciências cognitivas e comportamentais. A necessidade de <strong>padronização no relato de parâmetros instrumentais</strong> permanece como lacuna central — fabricante, modelo, taxa de amostragem, precisão angular e protocolo de calibração.</p>
+    <p class="prosa">As trajetórias futuras — integração multimodal, <em>machine learning</em> e paradigmas ecológicos — apontam para um panorama promissor onde o rastreamento ocular permite decodificar a cognição humana em ambientes complexos e naturalísticos, com impacto direto na pesquisa clínica, educacional e tecnológica.</p>
+  </div>
+</section>
+
+<!-- 08 REFERÊNCIAS -->
+<section class="secao" id="referencias">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">08</span>
+      <h2><span class="sec-sub">Bibliografía</span><span class="sec-titulo">Referências</span></h2>
+    </div>
+    <div class="ref-grid">
+      <div class="ref"><strong>ADAMS, O. J.; GASPELIN, N.</strong> Attentional suppression of dynamic versus static salient distractors. <em>Attention, Perception, and Psychophysics</em>, 2024.</div>
+      <div class="ref"><strong>BRADSHAW, J. et al.</strong> Infant embodied attention in context: feasibility of home-based head-mounted eye tracking. <em>Developmental Cognitive Neuroscience</em>, 2023.</div>
+      <div class="ref"><strong>HESSELS, R. S. et al.</strong> The link between theory and research question is the foundation of any eye-tracking study. <em>Behavior Research Methods</em>, 2025a.</div>
+      <div class="ref"><strong>HESSELS, R. S. et al.</strong> Pilot studies in eye tracking. <em>Behavior Research Methods</em>, 2025b.</div>
+      <div class="ref"><strong>HESSELS, R. S. et al.</strong> Wearable eye tracking for dyadic interactions. <em>Behavior Research Methods</em>, 2024.</div>
+      <div class="ref"><strong>HOOGE, I. T. C. et al.</strong> Operationalization of variables in eye-tracking research. <em>Behavior Research Methods</em>, 2025a.</div>
+      <div class="ref"><strong>HOOGE, I. T. C. et al.</strong> Defining Areas of Interest (AOIs). <em>Behavior Research Methods</em>, 2026.</div>
+      <div class="ref"><strong>NAVALÓN, P. et al.</strong> Attentional biases in schizophrenia: an eye-tracking study. <em>Schizophrenia Research</em>, 2021.</div>
+      <div class="ref"><strong>NYSTRÖM, M. et al.</strong> Hardware selection and calibration in eye tracking. <em>Behavior Research Methods</em>, 2025.</div>
+      <div class="ref"><strong>RIZZO, A. et al.</strong> Detecting cognitive interference states from raw eye movement data. <em>Computers in Human Behavior</em>, 2022.</div>
+      <div class="ref"><strong>SIMON MAJED CEH; BENEDEK, M.</strong> fMRI-eye tracking coregistration for mapping internal attention. <em>NeuroImage</em>, 2021.</div>
+      <div class="ref"><strong>SKVERSKY-BLOCQ, Y. et al.</strong> Pupillary responses during the observation of social threats. <em>Emotion</em>, 2022.</div>
+      <div class="ref"><strong>STAPEL, J. C. et al.</strong> Automated perception of traffic scenes and driver eye tracking. <em>Transportation Research Part F</em>, 2022.</div>
+      <div class="ref"><strong>STILWELL, B. T.; VECERA, S. P.</strong> Saccadic trajectories and learned distractor rejection. <em>Vision Research</em>, 2022.</div>
+      <div class="ref"><strong>WANG, S. et al.</strong> Facial scanning patterns in infants with high probability of autism. <em>Autism Research</em>, 2025.</div>
+      <div class="ref"><strong>ZHANG, Y. et al.</strong> Graph Convolutional Networks for joint EEG and eye-tracking analysis in autism. <em>IEEE Transactions on Neural Systems and Rehabilitation Engineering</em>, 2021.</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <strong>III Simpósio de Integração, Inovação e Tecnologia — IFB · 2025</strong><br>
+  Vanessa Cristina da Silva & Letícia Bianca Barros de Moraes Lima<br>
+  LabConsumer/ENEDES · Instituto Federal de Brasília
+</footer>
+
+<script>
+// cursor olho
+const cur = document.getElementById('eye-cursor');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top  = e.clientY + 'px';
+});
+
+// animação entrada
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(en => { if (en.isIntersecting) en.target.classList.add('vis'); });
+}, { threshold: 0.07 });
+document.querySelectorAll('.secao').forEach(s => obs.observe(s));
+
+// nav ativo
+const navLinks = document.querySelectorAll('.site-nav a');
+const secs = document.querySelectorAll('section[id]');
+window.addEventListener('scroll', () => {
+  let cur = '';
+  secs.forEach(s => { if (window.scrollY >= s.offsetTop - 80) cur = s.id; });
+  navLinks.forEach(a => a.classList.toggle('ativo', a.getAttribute('href') === '#' + cur));
+}, { passive: true });
+</script>
+</body>
+</html>
